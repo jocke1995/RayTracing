@@ -20,11 +20,23 @@ void Renderer::Resize(uint32_t width, uint32_t height)
 void Renderer::Render()
 {
    // Render something
-   for (uint32_t i = 0; i < (m_FinalImage->GetWidth() * m_FinalImage->GetHeight()); i++)
+   for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
    {
-      m_ImageData[i] = Walnut::Random::UInt(); // AGBR
-      m_ImageData[i] |= 0xff000000;
+      for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
+      {
+         glm::vec2 uv = { (float)x / m_FinalImage->GetWidth(), (float)y / m_FinalImage->GetHeight() };
+         uint32_t imageDataIndex = x + (y * m_FinalImage->GetWidth());
+         m_ImageData[imageDataIndex] = PerPixel(uv);
+      }
    }
 
    m_FinalImage->SetData(m_ImageData);
+}
+
+uint32_t Renderer::PerPixel(glm::vec2 uv)
+{
+   uint8_t red    = (uint8_t)(uv.x * 255.0f);
+   uint8_t green  = (uint8_t)(uv.y * 255.0f);
+
+   return 0xff000000 | (green << 8) | (red);
 }
