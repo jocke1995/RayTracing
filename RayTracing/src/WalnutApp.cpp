@@ -7,6 +7,8 @@
 // Raytracing specific
 #include "Renderer.h"
 
+static bool RENDER_EVERY_FRAME = false;
+
 using namespace Walnut;
 class ExampleLayer : public Walnut::Layer
 {
@@ -15,10 +17,18 @@ public:
    {
       ImGui::Begin("Settings");
       ImGui::Text("Last render: %.3fms", m_LastRenderTime);
-      if (ImGui::Button("Render"))
+      if (RENDER_EVERY_FRAME == true)
       {
          Render();
       }
+      else
+      {
+         if (ImGui::Button("Render"))
+         {
+            Render();
+         }
+      }
+
       ImGui::End();
 
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
