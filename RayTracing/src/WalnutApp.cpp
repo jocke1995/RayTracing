@@ -1,9 +1,11 @@
 #include "Walnut/Application.h"
 #include "Walnut/EntryPoint.h"
 
-#include "Walnut/Image.h"
-#include "Walnut/Random.h"
+// Misc Walnut
 #include "Walnut/Timer.h"
+
+// Raytracing specific
+#include "Renderer.h"
 
 using namespace Walnut;
 class ExampleLayer : public Walnut::Layer
@@ -25,9 +27,9 @@ public:
       m_ViewportWidth  = ImGui::GetContentRegionAvail().x;
       m_ViewportHeight = ImGui::GetContentRegionAvail().y;
 
-      if (m_Image != nullptr)
+      if (auto finalImage = m_Renderer.GetFinalImage())
       {
-         ImGui::Image(m_Image->GetDescriptorSet(),{ (float)m_Image->GetWidth(), (float)m_Image->GetHeight() });
+         ImGui::Image(finalImage->GetDescriptorSet(),{ (float)finalImage->GetWidth(), (float)finalImage->GetHeight() });
       }
 
       ImGui::End();
@@ -38,33 +40,20 @@ public:
    {
       Timer timer;
 
-      // Recreate if needed
-      if (m_Image == nullptr || m_ViewportWidth != m_Image->GetWidth() || m_ViewportHeight != m_Image->GetHeight())
+      // Render
       {
-         m_Image = std::make_shared<Image>(m_ViewportWidth, m_ViewportHeight, ImageFormat::RGBA); // 4 bytes per pixel
-         delete[] m_ImageData;
+         m_Renderer.Resize(m_ViewportWidth, m_ViewportHeight);
 
-         m_ImageData = new uint32_t[m_ViewportWidth * m_ViewportHeight];
+         m_Renderer.Render();
       }
-
-      // Render something
-      for (uint32_t i = 0; i < (m_ViewportWidth * m_ViewportHeight); i++)
-      {
-         m_ImageData[i] = Random::UInt(); // AGBR
-         m_ImageData[i] |= 0xff000000;
-      }
-
-      m_Image->SetData(m_ImageData);
 
       m_LastRenderTime = timer.ElapsedMillis();
    }
 
 private:
-   std::shared_ptr<Image> m_Image = nullptr;
+   Renderer m_Renderer;
 
    uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-
-   uint32_t* m_ImageData = nullptr;
 
    float m_LastRenderTime = 0.0f;
 };
