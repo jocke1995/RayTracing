@@ -6,29 +6,24 @@
 
 // Raytracing specific
 #include "Renderer.h"
-
-static bool RENDER_EVERY_FRAME = false;
-
+#include "Camera.h"
 using namespace Walnut;
 class ExampleLayer : public Walnut::Layer
 {
 public:
+
+   ExampleLayer() 
+      : m_Camera(45.0f, 0.1f, 100.0f) {};
+
+   virtual void OnUpdate(float ts) override
+   {
+      m_Camera.Update(ts);
+   }
+
    virtual void OnUIRender() override
    {
       ImGui::Begin("Settings");
       ImGui::Text("Last render: %.3fms", m_LastRenderTime);
-      if (RENDER_EVERY_FRAME == true)
-      {
-         Render();
-      }
-      else
-      {
-         if (ImGui::Button("Render"))
-         {
-            Render();
-         }
-      }
-
       ImGui::End();
 
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -46,6 +41,8 @@ public:
 
       ImGui::End();
       ImGui::PopStyleVar();
+
+      Render();
    }
 
    void Render()
@@ -54,9 +51,13 @@ public:
 
       // Render
       {
-         m_Renderer.Resize(m_ViewportWidth, m_ViewportHeight);
+         // Resize if needed
+         {
+            m_Renderer.Resize(m_ViewportWidth, m_ViewportHeight);
+            m_Camera.Resize(m_ViewportWidth, m_ViewportHeight);
+         }
 
-         m_Renderer.Render();
+         m_Renderer.Render(m_Camera);
       }
 
       m_LastRenderTime = timer.ElapsedMillis();
@@ -64,6 +65,7 @@ public:
 
 private:
    Renderer m_Renderer;
+   Camera m_Camera;
 
    uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 

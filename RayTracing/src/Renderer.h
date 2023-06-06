@@ -5,6 +5,9 @@
 
 #include <memory>
 
+#include "Camera.h"
+#include "Ray.h"
+
 class Renderer
 {
 public:
@@ -12,11 +15,11 @@ public:
    ~Renderer() = default;
 
    void Resize(uint32_t width, uint32_t height);
-   void Render();
+   void Render(const Camera& camera);
 
    std::shared_ptr<Walnut::Image> GetFinalImage() const { return m_FinalImage; }
 private:
-   uint32_t PerPixel(glm::vec2 uv);
+   glm::vec4 TraceRay(const Ray& ray);
 
    std::shared_ptr<Walnut::Image> m_FinalImage = nullptr;
    uint32_t* m_ImageData = nullptr;
