@@ -36,7 +36,6 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
    m_ActiveScene = &scene;
    m_ActiveCamera = &camera;
 
-
    // Render something
    for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
    {
@@ -72,15 +71,17 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 
       if (payload.HitDistance < 0)
       {
-         glm::vec3 skyColor = glm::vec3(0.0f, 0.0f, 0.0f);
+         glm::vec3 skyColor = glm::vec3(0.5f, 0.5f, 0.8f);
          accumulatedColor += (skyColor * multiplier);
          continue;
       }
 
       const Sphere& sphere = m_ActiveScene->m_Spheres[payload.ObjectIndex];
+      const Material& mat = m_ActiveScene->m_Materials[sphere.MaterialIndex];
+
       glm::vec3 lightDir = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
       float NdotL = glm::max(glm::dot(payload.WorldNorm, -lightDir), 0.0f);
-      glm::vec3 albedo = sphere.Albedo * NdotL;
+      glm::vec3 albedo = mat.Albedo * NdotL;
 
       accumulatedColor += (albedo * multiplier);
       multiplier *= 0.7f;
@@ -124,7 +125,7 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
       glm::vec3 sphereToRayOrigin = ray.Origin - sphere.Position;
       float A = glm::dot(ray.Direction, ray.Direction);
       float B = 2.0f * glm::dot(sphereToRayOrigin, ray.Direction);
-      float C = glm::dot(sphereToRayOrigin, sphereToRayOrigin) - (sphere.radius * sphere.radius);
+      float C = glm::dot(sphereToRayOrigin, sphereToRayOrigin) - (sphere.Radius * sphere.Radius);
 
       // Discriminant = [B^2 - 4AC]
       float discriminant = (B * B) - (4 * A * C);
