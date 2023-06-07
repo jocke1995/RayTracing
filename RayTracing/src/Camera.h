@@ -8,7 +8,7 @@ class Camera
 public:
    Camera(float verticalFOV, float nearClip, float farClip);
 
-   void Update(float ts);
+   bool Update(float ts);
    void Resize(uint32_t width, uint32_t height);
 
    const glm::mat4 GetProjection() const { return m_Projection; }

@@ -22,7 +22,7 @@ public:
       {
          Material purpleMat;
          purpleMat.Albedo = { 1.0f, 0.0f, 1.0f };
-         purpleMat.Roughness = 0.0f;
+         purpleMat.Roughness = 0.4f;
          purpleMat.Metallic = 0.0f;
          m_Scene.m_Materials.push_back(purpleMat);
       }
@@ -30,7 +30,7 @@ public:
       {
          Material greenMat;
          greenMat.Albedo = { 0.0f, 1.0f, 0.0f };
-         greenMat.Roughness = 0.0f;
+         greenMat.Roughness = 0.1f;
          greenMat.Metallic = 1.0f;
          m_Scene.m_Materials.push_back(greenMat);
       }
@@ -54,13 +54,23 @@ public:
 
    virtual void OnUpdate(float ts) override
    {
-      m_Camera.Update(ts);
+      if (m_Camera.Update(ts))
+      {
+         m_Renderer.ResetFrameIndex();
+      }
    }
 
    virtual void OnUIRender() override
    {
       ImGui::Begin("Settings");
       ImGui::Text("Last render: %.3fms", m_LastRenderTime);
+
+      ImGui::Checkbox("Acuumulate", &m_Renderer.GetSettings().Accumulate);
+      if (ImGui::Button("Reset"))
+      {
+         m_Renderer.ResetFrameIndex();
+      }
+
       ImGui::End();
 
       ImGui::Begin("Scene");

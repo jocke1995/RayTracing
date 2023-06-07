@@ -20,12 +20,21 @@ void Renderer::Resize(uint32_t width, uint32_t height)
 {
    if (m_FinalImage != nullptr)
    {
+      if (m_FinalImage->GetWidth() == width && m_FinalImage->GetHeight() == height)
+      {
+         return;
+      }
+
       m_FinalImage->Resize(width, height);
    }
    else
    {
       m_FinalImage = std::make_shared<Walnut::Image>(width, height, Walnut::ImageFormat::RGBA); // 4 bytes per pixel
    }
+
+   delete[] m_AccumulationData;
+   m_AccumulationData = new glm::vec4[width * height];
+   m_FrameIndex = 1;
 
    delete[] m_ImageData;
    m_ImageData = new uint32_t[width * height];
@@ -36,21 +45,40 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
    m_ActiveScene = &scene;
    m_ActiveCamera = &camera;
 
+   if (m_FrameIndex == 1)
+   {
+      memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
+   }
+
    // Render something
    for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
    {
       for (uint32_t x = 0; x < m_FinalImage->GetWidth(); x++)
       {
+         uint32_t imageDataIndex = x + (y * m_FinalImage->GetWidth());
+
          glm::vec4 color = PerPixel(x, y);
-         color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
+         m_AccumulationData[imageDataIndex] += color;
+
+         glm::vec4 accumulatedColor = m_AccumulationData[imageDataIndex];
+         accumulatedColor /= (float)m_FrameIndex;
 
          // Write out the color
-         uint32_t imageDataIndex = x + (y * m_FinalImage->GetWidth());
-         m_ImageData[imageDataIndex] = Utils::ConvertToRGBA(color);
+         accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+         m_ImageData[imageDataIndex] = Utils::ConvertToRGBA(accumulatedColor);
       }
    }
 
    m_FinalImage->SetData(m_ImageData);
+
+   if (m_Settings.Accumulate == true)
+   {
+      m_FrameIndex++;
+   }
+   else
+   {
+      m_FrameIndex = 1;
+   }
 }
 
 glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
@@ -63,7 +91,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 
    float multiplier = 1.0f;
 
-   uint32_t numBounces = 1;
+   uint32_t numBounces = 5;
    glm::vec3 accumulatedColor{ 0.0f };
    for (uint32_t i = 0; i < numBounces; i++)
    {
@@ -88,7 +116,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 
       // Prepare for next iteration
       ray.Origin = payload.WorldPos + (payload.WorldNorm * 0.001f);
-      ray.Direction = glm::reflect(ray.Direction, payload.WorldNorm);
+      ray.Direction = glm::reflect(ray.Direction, payload.WorldNorm + mat.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
    }
    accumulatedColor /= numBounces;
 

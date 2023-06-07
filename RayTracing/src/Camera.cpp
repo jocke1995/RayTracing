@@ -13,7 +13,7 @@ Camera::Camera(float verticalFOV, float nearClip, float farClip)
    m_Position = glm::vec3(0, 0, 3);
 }
 
-void Camera::Update(float ts)
+bool Camera::Update(float ts)
 {
    static const float sensitivity = 0.002f;
    glm::vec2 mousePos = Walnut::Input::GetMousePosition();
@@ -24,7 +24,7 @@ void Camera::Update(float ts)
    {
       // If we're not moving the camera, we just stop here
       Walnut::Input::SetCursorMode(Walnut::CursorMode::Normal);
-      return;
+      return false;
    }
 
    Walnut::Input::SetCursorMode(Walnut::CursorMode::Locked);
@@ -91,6 +91,8 @@ void Camera::Update(float ts)
       RecalculateView();
       RecalculateRayDirections();
    }
+
+   return moved;
 }
 
 void Camera::Resize(uint32_t width, uint32_t height)
