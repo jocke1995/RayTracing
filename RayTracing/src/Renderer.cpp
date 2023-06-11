@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-#include "Walnut/Random.h"
+#include "AppRandom.h"
 
 #include <execution>
 
@@ -124,38 +124,33 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
    ray.Origin = m_ActiveCamera->GetPosition();
    ray.Direction = m_ActiveCamera->GetRayDirections()[imageDataIndex];
 
-   float multiplier = 1.0f;
+   glm::vec3 contribution { 1.0f };
+   glm::vec3 accumulatedLight{ 0.0f };
 
-   uint32_t numBounces = 3;
-   glm::vec3 accumulatedColor{ 0.0f };
+   uint32_t numBounces = 5;
    for (uint32_t i = 0; i < numBounces; i++)
    {
       HitPayload payload = TraceRay(ray);
 
       if (payload.HitDistance < 0)
       {
-         glm::vec3 skyColor = glm::vec3(0.5f, 0.5f, 0.8f);
-         accumulatedColor += (skyColor * multiplier);
          continue;
       }
 
       const Sphere& sphere = m_ActiveScene->m_Spheres[payload.ObjectIndex];
       const Material& mat = m_ActiveScene->m_Materials[sphere.MaterialIndex];
 
-      glm::vec3 lightDir = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
-      float NdotL = glm::max(glm::dot(payload.WorldNorm, -lightDir), 0.0f);
-      glm::vec3 albedo = mat.Albedo * NdotL;
-
-      accumulatedColor += (albedo * multiplier);
-      multiplier *= 0.7f;
+      //accumulatedLight += (mat.Albedo * contribution);
+      contribution *= mat.Albedo;
+      accumulatedLight += (mat.GetEmission());
 
       // Prepare for next iteration
       ray.Origin = payload.WorldPos + (payload.WorldNorm * 0.001f);
-      ray.Direction = glm::reflect(ray.Direction, payload.WorldNorm + mat.Roughness * Walnut::Random::Vec3(-0.5f, 0.5f));
+      ray.Direction = glm::normalize(payload.WorldNorm + AppRandom::InUnitSphere());
    }
-   accumulatedColor /= numBounces;
+   accumulatedLight /= numBounces;
 
-   return glm::vec4(accumulatedColor, 1.0f);
+   return glm::vec4(accumulatedLight, 1.0f);
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)

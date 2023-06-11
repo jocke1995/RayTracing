@@ -24,6 +24,8 @@ public:
          purpleMat.Albedo = { 1.0f, 0.0f, 1.0f };
          purpleMat.Roughness = 0.4f;
          purpleMat.Metallic = 0.0f;
+         purpleMat.EmissionColor = purpleMat.Albedo;
+         purpleMat.EmissionPower = 0.0f;
          m_Scene.m_Materials.push_back(purpleMat);
       }
 
@@ -32,7 +34,19 @@ public:
          greenMat.Albedo = { 0.0f, 1.0f, 0.0f };
          greenMat.Roughness = 0.1f;
          greenMat.Metallic = 1.0f;
+         greenMat.EmissionColor = greenMat.Albedo;
+         greenMat.EmissionPower = 0.0f;
          m_Scene.m_Materials.push_back(greenMat);
+      }
+
+      {
+         Material sunMat;
+         sunMat.Albedo = { 0.8f, 0.5f, 0.2f };
+         sunMat.Roughness = 0.1f;
+         sunMat.Metallic = 1.0f;
+         sunMat.EmissionColor = sunMat.Albedo;
+         sunMat.EmissionPower = 2.0f;
+         m_Scene.m_Materials.push_back(sunMat);
       }
 
       {
@@ -49,6 +63,14 @@ public:
          sphere.Radius = 100.0f;
          sphere.MaterialIndex = 1;
          m_Scene.m_Spheres.push_back(sphere);
+      }
+
+      {
+         Sphere sun;
+         sun.Position = { 32.0f, 4.0f, -32.0f };
+         sun.Radius = 20.0f;
+         sun.MaterialIndex = 2;
+         m_Scene.m_Spheres.push_back(sun);
       }
    };
 
@@ -74,31 +96,44 @@ public:
       ImGui::End();
 
       ImGui::Begin("Scene");
-      for (size_t i = 0; i < m_Scene.m_Spheres.size(); i++)
+      if (ImGui::TreeNode("Spheres"))
       {
-         ImGui::PushID(i);
+         for (size_t i = 0; i < m_Scene.m_Spheres.size(); i++)
+         {
+            ImGui::PushID(i);
 
-         Sphere& sphere = m_Scene.m_Spheres[i];
-         ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.1f);
-         ImGui::DragFloat("Radius", &(sphere.Radius), 0.1f);
-         ImGui::DragInt("Material", &sphere.MaterialIndex, 1.0f, 0, (int)m_Scene.m_Materials.size() - 1);
+            Sphere& sphere = m_Scene.m_Spheres[i];
+            ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.1f);
+            ImGui::DragFloat("Radius", &(sphere.Radius), 0.1f);
+            ImGui::DragInt("Material", &sphere.MaterialIndex, 1.0f, 0, (int)m_Scene.m_Materials.size() - 1);
 
-         ImGui::Separator();
-         ImGui::PopID();
+            ImGui::Separator();
+            ImGui::PopID();
+         }
+         ImGui::TreePop();
       }
 
-      for (size_t i = 0; i < m_Scene.m_Materials.size(); i++)
+      if (ImGui::TreeNode("Materials"))
       {
-         ImGui::PushID(i);
+         for (size_t i = 0; i < m_Scene.m_Materials.size(); i++)
+         {
+            ImGui::PushID(i);
 
-         Material& material = m_Scene.m_Materials[i];
-         ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo), 0.1f);
-         ImGui::DragFloat("Roughness", &(material.Roughness), 0.05, 0.0f, 1.0f);
-         ImGui::DragFloat("Metallic", &(material.Metallic), 0.05, 0.0f, 1.0f);
+            Material& material = m_Scene.m_Materials[i];
+            ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo), 0.1f);
+            ImGui::DragFloat("Roughness", &(material.Roughness), 0.05, 0.0f, 1.0f);
+            ImGui::DragFloat("Metallic", &(material.Metallic), 0.05, 0.0f, 1.0f);
 
-         ImGui::Separator();
-         ImGui::PopID();
+            ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
+            ImGui::DragFloat("Emission Power", &(material.EmissionPower), 0.05, 0.0f, FLT_MAX);
+
+            ImGui::Separator();
+            ImGui::PopID();
+         }
+
+         ImGui::TreePop();
       }
+
 
       ImGui::End();
 
