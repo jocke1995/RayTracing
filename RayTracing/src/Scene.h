@@ -24,10 +24,22 @@ struct Sphere
    int MaterialIndex = -1;
 };
 
+struct Vertex
+{
+   glm::vec3 Position;
+   glm::vec3 Normal;
+};
+
+struct Mesh
+{
+   Vertex* Vertices = nullptr;
+};
+
 class Scene
 {
 public:
    std::vector<Sphere> m_Spheres;
    std::vector<Material> m_Materials;
+   std::vector<Mesh> m_Meshes;
 };
 

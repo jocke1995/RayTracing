@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 #include "AppRandom.h"
+#include "RayTracingHelper.h"
 
 #include <execution>
 
@@ -65,7 +66,7 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
       memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
    }
 
-#define MT
+//#define MT
 #if defined(MT)
    std::for_each(std::execution::par, m_ImageVerticalIter.begin(), m_ImageVerticalIter.end(),
       [this](uint32_t y) 
@@ -208,6 +209,18 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
          hitDistance = closestT;
          closestSphere = i;
       }
+   }
+
+   for (uint32_t i = 0; i < m_ActiveScene->m_Meshes.size(); i++)
+   {
+      const Mesh& mesh = m_ActiveScene->m_Meshes[i];
+      
+      float t = RayTracingHelper::RayTriangleIntersection(ray, mesh.Vertices);
+
+      // TODO: Fix the structure so we can trace both triangles and spheres
+      // Port sphere intersection to RayTracingHelper
+      // Return a shared payload struct
+      // return payload
    }
 
    // No hit

@@ -72,6 +72,20 @@ public:
          sun.MaterialIndex = 2;
          m_Scene.m_Spheres.push_back(sun);
       }
+
+      // Meshes
+      {
+         Mesh mesh;
+         mesh.Vertices = new Vertex[3];
+         mesh.Vertices[0].Position = glm::vec3(1.0f, 1.0f, 0.0f);    //Top Right
+         mesh.Vertices[1].Position = glm::vec3(-1.0f, -1.0f, 0.0f);  //Bottom Left
+         mesh.Vertices[2].Position = glm::vec3(1.0f, -1.0f, 0.0f);   //Bottom Right
+
+         glm::vec3 normal = glm::cross(mesh.Vertices[0].Position - mesh.Vertices[1].Position, mesh.Vertices[0].Position - mesh.Vertices[2].Position);
+         mesh.Vertices[0].Normal = mesh.Vertices[1].Normal = mesh.Vertices[2].Normal = glm::normalize(normal); // All vertices got the same normal obv
+
+         m_Scene.m_Meshes.push_back(mesh);
+      }
    };
 
    virtual void OnUpdate(float ts) override
@@ -133,7 +147,6 @@ public:
 
          ImGui::TreePop();
       }
-
 
       ImGui::End();
 
