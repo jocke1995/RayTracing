@@ -9,6 +9,7 @@
 #include "Ray.h"
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
+#include "Scene/Components.h"
 
 namespace entt
 {
@@ -50,10 +51,10 @@ private:
    Scene* m_ActiveScene = nullptr;
    const Camera* m_ActiveCamera = nullptr;
 
-   // A bit ugly to store the "views" like this, but it might be decent for the cache anyways since we'll iterate these
-   // Doing this for now because it's extremly slow to grab the views for every pixel, so might aswell do it once per frame and store them for easy access
-   std::vector<Entity> m_SphereEntities;
-   std::vector<Entity> m_MeshEntities;
+   // A bit ugly to store the unpacked "entt::views" like this, but it might be decent for the cache anyways since we'll iterate these
+   // Doing this for now because it's extremly slow to grab the views and the components for each pixel, so might aswell do it once per frame and store them for easy access
+   std::vector<std::pair<const SphereComponent, const IDComponent>> m_SphereComponents;
+   std::vector<std::pair<const MeshComponent, const IDComponent>> m_MeshComponents;
 
    Settings m_Settings = {};
 

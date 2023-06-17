@@ -68,19 +68,19 @@ void Renderer::Render(Scene& scene, const Camera& camera)
    // Package the entities we need nicely in an array for easy access
    {
       const auto& sphereView = m_ActiveScene->GetAllEntitiesWith<SphereComponent, IDComponent>();
-      m_SphereEntities.clear();
+      m_SphereComponents.clear();
       for (auto& entity : sphereView)
       {
          auto [sphere, id] = sphereView.get<SphereComponent, IDComponent>(entity);
-         m_SphereEntities.push_back(m_ActiveScene->GetEntityByUUID(id.m_UUID));
+         m_SphereComponents.push_back(std::make_pair(sphere, id));
       }
 
       const auto& meshView = m_ActiveScene->GetAllEntitiesWith<MeshComponent, IDComponent>();
-      m_MeshEntities.clear();
+      m_MeshComponents.clear();
       for (auto& entity : meshView)
       {
          auto [mesh, id] = meshView.get<MeshComponent, IDComponent>(entity);
-         m_MeshEntities.push_back(m_ActiveScene->GetEntityByUUID(id.m_UUID));
+         m_MeshComponents.push_back(std::make_pair(mesh, id));
       }
    }
 
@@ -187,18 +187,15 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
    HitPayload payload;
    payload.EntityUUID = 0;
    payload.HitDistance = -1;
-   if (m_SphereEntities.empty() && m_MeshEntities.empty())
+   if (m_SphereComponents.empty() && m_MeshComponents.empty())
    {
       return payload;
    }
 
    float closestIntersectionHit = FLT_MAX;
 
-   for (Entity& entity : m_SphereEntities)
+   for (auto[sphereComponent, idComponent] : m_SphereComponents)
    {
-      assert(entity.HasComponent<SphereComponent>());
-      const SphereComponent& sphereComponent = entity.GetComponent<SphereComponent>();
-
       glm::vec3 origin = ray.Origin - sphereComponent.m_Position;
 
       // [Spheres] Solve for this eq
@@ -236,7 +233,7 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
       if ((closestT < closestIntersectionHit) && (closestT >= 0.0f))
       {
          closestIntersectionHit = closestT;
-         payload.EntityUUID = entity.GetUUID();
+         payload.EntityUUID = idComponent.m_UUID;
       }
    }
 
@@ -247,17 +244,14 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
    }
 
    float closestTriangleHit = FLT_MAX;
-   for (Entity& entity : m_MeshEntities)
+   for (auto [meshComponent, idComponent] : m_MeshComponents)
    {
-      assert(entity.HasComponent<MeshComponent>());
-      const MeshComponent& meshComponent = entity.GetComponent<MeshComponent>();
-      
       float closestT = RayTracingHelper::RayTriangleIntersection(ray, meshComponent.m_Mesh->m_Vertices);
    
       if ((closestT < closestTriangleHit) && (closestT >= 0.0f))
       {
          closestTriangleHit = closestT;
-         payload.EntityUUID = entity.GetUUID();
+         payload.EntityUUID = idComponent.m_UUID;
       }
    }
 
