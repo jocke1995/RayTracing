@@ -256,17 +256,22 @@ Renderer::HitPayload Renderer::Miss(const Ray& ray)
 
 Renderer::HitPayload Renderer::ReportIntersectionHit(float closestT, const Ray& ray, uint64_t entityUUID)
 {
-   // Currently the only "intersection shader" geometry we got besides triangles.
-   // Later we could add support for other customs types here, like metaballs, planes etc etc
    Entity entity = m_ActiveScene->GetEntityByUUID(entityUUID);
-   assert(entity.HasComponent<SphereComponent>());
-   SphereComponent sphereComponent = entity.GetComponent<SphereComponent>();
-  
+   
    HitPayload payload;
    payload.HitDistance = closestT;
-   payload.WorldPos = ray.Origin + ray.Direction * closestT;
-   payload.WorldNorm = glm::normalize(payload.WorldPos - sphereComponent.m_Position);
    payload.EntityUUID = entityUUID;
-  
+   // Currently the only "intersection shader" geometry we got besides triangles.
+   // Later we could add support for other customs types here, like metaballs, planes etc etc
+   // So right now there is no pointin testing if we have a sphere, as we wouldn't get in here if we didn't
+   // And apparently entt seems to be slow when checking this for some reason..
+   // if (entity.HasComponent<SphereComponent>())
+   {
+      SphereComponent sphereComponent = entity.GetComponent<SphereComponent>();
+
+      payload.WorldPos = ray.Origin + ray.Direction * closestT;
+      payload.WorldNorm = glm::normalize(payload.WorldPos - sphereComponent.m_Position);
+   }
+
    return payload;
 }
