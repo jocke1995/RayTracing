@@ -196,40 +196,8 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 
    for (auto[sphereComponent, idComponent] : m_SphereComponents)
    {
-      glm::vec3 origin = ray.Origin - sphereComponent.m_Position;
-
-      // [Spheres] Solve for this eq
-      // (b_x^2 + b_y^2 + b_z^2)t^2 + (2(a_x*b_x + a_y*b_y + a_z*b_z*))t + (a_x^2 + a_y^2 + a_z^2 - r^2) = 0
-      //          (A)t^2          +            (B)t^2            +           C = 0 (in the quadratic formula)
-      // a = ray origin
-      // b = ray direction
-      // r = radius
-      // t = hit distance
-
-      // A, B, C is part of the quadratic equation [(-B +- sqrt(B^2 - 4AC) / 2A]
-      glm::vec3 sphereToRayOrigin = ray.Origin - sphereComponent.m_Position;
-      float A = glm::dot(ray.Direction, ray.Direction);
-      float B = 2.0f * glm::dot(sphereToRayOrigin, ray.Direction);
-      float C = glm::dot(sphereToRayOrigin, sphereToRayOrigin) - (sphereComponent.m_Radius * sphereComponent.m_Radius);
-
-      // Discriminant = [B^2 - 4AC]
-      float discriminant = (B * B) - (4 * A * C);
-
-      if (discriminant < 0.0f)
-      {
-         // No hit, check the next sphere
-         continue;
-      }
-
-      float t[2] =
-      {
-         (-B + glm::sqrt(discriminant)) / (2 * A),
-         (-B - glm::sqrt(discriminant)) / (2 * A)
-      };
-
-      // no need for the other hit as t[1] will be closest
-      float closestT = t[1];
-
+      float closestT = RayTracingHelper::RaySphereIntersection(ray, sphereComponent.m_Position, sphereComponent.m_Radius);
+      
       if ((closestT < closestIntersectionHit) && (closestT >= 0.0f))
       {
          closestIntersectionHit = closestT;
