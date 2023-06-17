@@ -15,6 +15,9 @@ project "RayTracing"
 
       "../Walnut/Walnut/src",
 
+      "../Vendor",
+      "../RayTracing/src",
+
       "%{IncludeDir.VulkanSDK}",
    }
 

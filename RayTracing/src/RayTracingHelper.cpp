@@ -18,17 +18,17 @@ float RayTracingHelper::RayTriangleIntersection(const Ray& ray, const Vertex tri
    Vertex v1 = triangle[1];
    Vertex v2 = triangle[2];
 
-   glm::vec3 normal = v0.Normal; // They all have the same normal for now
+   glm::vec3 normal = v0.m_Normal; // They all have the same normal for now
 
    // If we're perpendicular to the triangle normal, we won't intersect
    // Also if we're behind the triangle, we want to backface cull it
-   if (IsPerpendicular(ray.Direction, normal) || IsRayBehindTriangle(ray.Origin, v0.Position, normal))
+   if (IsPerpendicular(ray.Direction, normal) || IsRayBehindTriangle(ray.Origin, v0.m_Position, normal))
    {
       return -1.0f;
    }
 
    // Find plane D
-   float D = -glm::dot(normal, v0.Position);
+   float D = -glm::dot(normal, v0.m_Position);
 
    // P = O +tR (R is direction in this case to not confuse it with D from the plane equation [Ax + Bx + Cz + D = 0]
    // Substituting P for the point in the plane ens up with [A*Px + B*Py + C*Pz + D = 0].
@@ -49,12 +49,12 @@ float RayTracingHelper::RayTriangleIntersection(const Ray& ray, const Vertex tri
    // by taking the dot product between the normal and the cross(edge0, v0) and checking if it's greater then 0
    // Check triangle edges to see if 
    {
-      glm::vec3 edge0 = v1.Position - v0.Position;
-      glm::vec3 edge1 = v2.Position - v1.Position;
-      glm::vec3 edge2 = v0.Position - v2.Position;
-      glm::vec3 C0 = hitPos - v0.Position;
-      glm::vec3 C1 = hitPos - v1.Position;
-      glm::vec3 C2 = hitPos - v2.Position;
+      glm::vec3 edge0 = v1.m_Position - v0.m_Position;
+      glm::vec3 edge1 = v2.m_Position - v1.m_Position;
+      glm::vec3 edge2 = v0.m_Position - v2.m_Position;
+      glm::vec3 C0 = hitPos - v0.m_Position;
+      glm::vec3 C1 = hitPos - v1.m_Position;
+      glm::vec3 C2 = hitPos - v2.m_Position;
 
       if (  glm::dot(normal, glm::cross(edge0, C0)) > 0 &&
             glm::dot(normal, glm::cross(edge1, C1)) > 0 &&

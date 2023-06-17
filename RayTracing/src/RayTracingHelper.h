@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Ray.h"
-#include "Scene.h"
+#include "Scene/Scene.h"
+#include "Scene/Components.h"
 
 class RayTracingHelper
 {

@@ -5,6 +5,10 @@
 
 #include <execution>
 
+#include "Scene/Scene.h"
+#include "Scene/Components.h"
+#include "Scene/Entity.h"
+
 namespace Utils
 {
    static uint32_t ConvertToRGBA(const glm::vec4& color)
@@ -56,17 +60,36 @@ void Renderer::Resize(uint32_t width, uint32_t height)
    }
 }
 
-void Renderer::Render(const Scene& scene, const Camera& camera)
+void Renderer::Render(Scene& scene, const Camera& camera)
 {
    m_ActiveScene = &scene;
    m_ActiveCamera = &camera;
+
+   // Package the entities we need nicely in an array for easy access
+   {
+      const auto& sphereView = m_ActiveScene->GetAllEntitiesWith<SphereComponent, IDComponent>();
+      m_SphereEntities.clear();
+      for (auto& entity : sphereView)
+      {
+         auto [sphere, id] = sphereView.get<SphereComponent, IDComponent>(entity);
+         m_SphereEntities.push_back(m_ActiveScene->GetEntityByUUID(id.m_UUID));
+      }
+
+      const auto& meshView = m_ActiveScene->GetAllEntitiesWith<MeshComponent, IDComponent>();
+      m_MeshEntities.clear();
+      for (auto& entity : meshView)
+      {
+         auto [mesh, id] = meshView.get<MeshComponent, IDComponent>(entity);
+         m_MeshEntities.push_back(m_ActiveScene->GetEntityByUUID(id.m_UUID));
+      }
+   }
 
    if (m_FrameIndex == 1)
    {
       memset(m_AccumulationData, 0, m_FinalImage->GetWidth() * m_FinalImage->GetHeight() * sizeof(glm::vec4));
    }
 
-//#define MT
+#define MT
 #if defined(MT)
    std::for_each(std::execution::par, m_ImageVerticalIter.begin(), m_ImageVerticalIter.end(),
       [this](uint32_t y) 
@@ -120,57 +143,63 @@ void Renderer::Render(const Scene& scene, const Camera& camera)
 glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
 {
    uint32_t imageDataIndex = x + (y * m_FinalImage->GetWidth());
-
+   
    Ray ray;
    ray.Origin = m_ActiveCamera->GetPosition();
    ray.Direction = m_ActiveCamera->GetRayDirections()[imageDataIndex];
-
+   
    glm::vec3 contribution { 1.0f };
    glm::vec3 accumulatedLight{ 0.0f };
-
+   
    uint32_t numBounces = 5;
    for (uint32_t i = 0; i < numBounces; i++)
    {
       HitPayload payload = TraceRay(ray);
-
-      if (payload.HitDistance < 0)
+   
+      if ((payload.HitDistance < 0) || (payload.EntityUUID == 0))
       {
          continue;
       }
-
-      const Sphere& sphere = m_ActiveScene->m_Spheres[payload.ObjectIndex];
-      const Material& mat = m_ActiveScene->m_Materials[sphere.MaterialIndex];
-
-      //accumulatedLight += (mat.Albedo * contribution);
-      contribution *= mat.Albedo;
-      accumulatedLight += (mat.GetEmission());
-
+   
+      Entity entity = m_ActiveScene->GetEntityByUUID(payload.EntityUUID);
+      if (entity.HasComponent<MaterialComponent>())
+      {
+         const MaterialComponent& materialComponent = entity.GetComponent<MaterialComponent>();
+   
+         Material& mat = *materialComponent.m_Material;
+   
+         // accumulatedLight += (mat.m_Albedo * contribution);
+         contribution *= mat.m_Albedo;
+         accumulatedLight += (mat.GetEmission());
+      }
+   
       // Prepare for next iteration
       ray.Origin = payload.WorldPos + (payload.WorldNorm * 0.001f);
       ray.Direction = glm::normalize(payload.WorldNorm + AppRandom::InUnitSphere());
    }
    accumulatedLight /= numBounces;
-
+   
    return glm::vec4(accumulatedLight, 1.0f);
 }
 
 Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
 {
    HitPayload payload;
-
-   if (m_ActiveScene->m_Spheres.size() == 0)
+   payload.EntityUUID = 0;
+   payload.HitDistance = -1;
+   if (m_SphereEntities.empty() && m_MeshEntities.empty())
    {
-      payload.HitDistance = -1;
       return payload;
    }
 
-   int closestSphere = -1;
-   float hitDistance = FLT_MAX;
+   float closestIntersectionHit = FLT_MAX;
 
-   for (uint32_t i = 0; i < m_ActiveScene->m_Spheres.size(); i++)
+   for (Entity& entity : m_SphereEntities)
    {
-      const Sphere& sphere = m_ActiveScene->m_Spheres[i];
-      glm::vec3 origin = ray.Origin - sphere.Position;
+      assert(entity.HasComponent<SphereComponent>());
+      const SphereComponent& sphereComponent = entity.GetComponent<SphereComponent>();
+
+      glm::vec3 origin = ray.Origin - sphereComponent.m_Position;
 
       // [Spheres] Solve for this eq
       // (b_x^2 + b_y^2 + b_z^2)t^2 + (2(a_x*b_x + a_y*b_y + a_z*b_z*))t + (a_x^2 + a_y^2 + a_z^2 - r^2) = 0
@@ -181,10 +210,10 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
       // t = hit distance
 
       // A, B, C is part of the quadratic equation [(-B +- sqrt(B^2 - 4AC) / 2A]
-      glm::vec3 sphereToRayOrigin = ray.Origin - sphere.Position;
+      glm::vec3 sphereToRayOrigin = ray.Origin - sphereComponent.m_Position;
       float A = glm::dot(ray.Direction, ray.Direction);
       float B = 2.0f * glm::dot(sphereToRayOrigin, ray.Direction);
-      float C = glm::dot(sphereToRayOrigin, sphereToRayOrigin) - (sphere.Radius * sphere.Radius);
+      float C = glm::dot(sphereToRayOrigin, sphereToRayOrigin) - (sphereComponent.m_Radius * sphereComponent.m_Radius);
 
       // Discriminant = [B^2 - 4AC]
       float discriminant = (B * B) - (4 * A * C);
@@ -204,43 +233,54 @@ Renderer::HitPayload Renderer::TraceRay(const Ray& ray)
       // no need for the other hit as t[1] will be closest
       float closestT = t[1];
 
-      if ((closestT < hitDistance) && (closestT >= 0.0f))
+      if ((closestT < closestIntersectionHit) && (closestT >= 0.0f))
       {
-         hitDistance = closestT;
-         closestSphere = i;
+         closestIntersectionHit = closestT;
+         payload.EntityUUID = entity.GetUUID();
       }
    }
 
-   for (uint32_t i = 0; i < m_ActiveScene->m_Meshes.size(); i++)
+   // Check if we hit anything with the "intersection shader"
+   if (closestIntersectionHit != FLT_MAX)
    {
-      const Mesh& mesh = m_ActiveScene->m_Meshes[i];
-      
-      float t = RayTracingHelper::RayTriangleIntersection(ray, mesh.Vertices);
+      payload = ReportIntersectionHit(closestIntersectionHit, ray, payload.EntityUUID);
+   }
 
-      // TODO: Fix the structure so we can trace both triangles and spheres
-      // Port sphere intersection to RayTracingHelper
-      // Return a shared payload struct
-      // return payload
+   float closestTriangleHit = FLT_MAX;
+   for (Entity& entity : m_MeshEntities)
+   {
+      assert(entity.HasComponent<MeshComponent>());
+      const MeshComponent& meshComponent = entity.GetComponent<MeshComponent>();
+      
+      float closestT = RayTracingHelper::RayTriangleIntersection(ray, meshComponent.m_Mesh->m_Vertices);
+   
+      if ((closestT < closestTriangleHit) && (closestT >= 0.0f))
+      {
+         closestTriangleHit = closestT;
+         payload.EntityUUID = entity.GetUUID();
+      }
+   }
+
+   // Check if we hit anything with the "triangle-tracing shader"
+   if (closestTriangleHit != FLT_MAX)
+   {
+      // Check whichever is closer, the intersectionGeometry or a triangle
+      if (closestTriangleHit < closestIntersectionHit)
+      {
+         // We hit the triangle. Overwrite the payload with the triangle hit info
+         payload.HitDistance = closestTriangleHit;
+
+         // Calculate worldPos and normals;
+         payload.WorldPos = {};
+         payload.WorldNorm = {};
+      }
    }
 
    // No hit
-   if (closestSphere == -1)
+   if (payload.HitDistance == -1)
    {
       return Miss(ray);
    }
-
-   return ClosestHit(ray, hitDistance, closestSphere);
-}
-
-Renderer::HitPayload Renderer::ClosestHit(const Ray& ray, float hitDistance, int objectIndex)
-{
-   HitPayload payload;
-
-   const Sphere& closestSphere = m_ActiveScene->m_Spheres[objectIndex];
-   payload.WorldPos = ray.Origin + ray.Direction * hitDistance;
-   payload.WorldNorm = glm::normalize(payload.WorldPos - closestSphere.Position);
-   payload.HitDistance = hitDistance;
-   payload.ObjectIndex = objectIndex;
 
    return payload;
 }
@@ -252,4 +292,19 @@ Renderer::HitPayload Renderer::Miss(const Ray& ray)
    return payload;
 }
 
-
+Renderer::HitPayload Renderer::ReportIntersectionHit(float closestT, const Ray& ray, uint64_t entityUUID)
+{
+   // Currently the only "intersection shader" geometry we got besides triangles.
+   // Later we could add support for other customs types here, like metaballs, planes etc etc
+   Entity entity = m_ActiveScene->GetEntityByUUID(entityUUID);
+   assert(entity.HasComponent<SphereComponent>());
+   SphereComponent sphereComponent = entity.GetComponent<SphereComponent>();
+  
+   HitPayload payload;
+   payload.HitDistance = closestT;
+   payload.WorldPos = ray.Origin + ray.Direction * closestT;
+   payload.WorldNorm = glm::normalize(payload.WorldPos - sphereComponent.m_Position);
+   payload.EntityUUID = entityUUID;
+  
+   return payload;
+}

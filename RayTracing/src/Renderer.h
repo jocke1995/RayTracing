@@ -7,7 +7,14 @@
 
 #include "Camera.h"
 #include "Ray.h"
-#include "Scene.h"
+#include "Scene/Scene.h"
+#include "Scene/Entity.h"
+
+namespace entt
+{
+   typedef basic_view<SphereComponent, IDComponent> SphereView;
+   typedef basic_view<MeshComponent  , IDComponent> MeshView;
+}
 
 class Renderer
 {
@@ -21,7 +28,7 @@ public:
    ~Renderer() = default;
 
    void Resize(uint32_t width, uint32_t height);
-   void Render(const Scene& scene, const Camera& camera);
+   void Render(Scene& scene, const Camera& camera);
    void ResetFrameIndex() { m_FrameIndex = 1; }
 
    std::shared_ptr<Walnut::Image> GetFinalImage() const { return m_FinalImage; }
@@ -32,17 +39,21 @@ private:
       float HitDistance;
       glm::vec3 WorldPos;
       glm::vec3 WorldNorm;
-
-      uint32_t ObjectIndex;
+      uint64_t EntityUUID;
    };
 
    glm::vec4 PerPixel(uint32_t x, uint32_t y);
    HitPayload TraceRay(const Ray& ray);
-   HitPayload ClosestHit(const Ray& ray, float hitDistance, int objectIndex);
    HitPayload Miss(const Ray& ray);
+   HitPayload ReportIntersectionHit(float closestT, const Ray& ray, uint64_t entityUUID); // Custom hit "shader" for geometry other than triangles (Spheres)
 
-   const Scene* m_ActiveScene = nullptr;
+   Scene* m_ActiveScene = nullptr;
    const Camera* m_ActiveCamera = nullptr;
+
+   // A bit ugly to store the "views" like this, but it might be decent for the cache anyways since we'll iterate these
+   // Doing this for now because it's extremly slow to grab the views for every pixel, so might aswell do it once per frame and store them for easy access
+   std::vector<Entity> m_SphereEntities;
+   std::vector<Entity> m_MeshEntities;
 
    Settings m_Settings = {};
 
