@@ -15,6 +15,10 @@ public:
    ~Entity();
 
    operator entt::entity() const { return m_EntityHandle; }
+   operator uint32_t() const { return (uint32_t)m_EntityHandle; } // ennt internal id
+   operator bool() const { return m_EntityHandle != entt::null; }
+   bool operator == (const Entity& other) const;
+   bool operator != (const Entity& other) const;
 
    template<typename T, typename... Args>
    T& AddComponent(Args&&... args)

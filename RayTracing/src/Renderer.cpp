@@ -168,7 +168,7 @@ glm::vec4 Renderer::PerPixel(uint32_t x, uint32_t y)
    
          Material& mat = *materialComponent.m_Material;
    
-         // accumulatedLight += (mat.m_Albedo * contribution);
+         accumulatedLight += (mat.m_Albedo * contribution);
          contribution *= mat.m_Albedo;
          accumulatedLight += (mat.GetEmission());
       }

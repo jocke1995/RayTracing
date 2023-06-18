@@ -7,6 +7,7 @@
 #include "Walnut/Timer.h"
 
 // Raytracing specific
+#include "SceneHierarchyPanel.h"
 #include "Renderer.h"
 #include "Camera.h"
 
@@ -21,7 +22,8 @@ class ExampleLayer : public Walnut::Layer
 public:
 
    ExampleLayer()
-      : m_Camera(45.0f, 0.1f, 100.0f)
+      :  m_Camera(45.0f, 0.1f, 100.0f), 
+         m_SceneHierarchyPanel(&m_Scene)
    {
 #pragma region CreateMaterials
       {
@@ -34,12 +36,12 @@ public:
       }
 
       {
-         Material greenMat;
-         greenMat.m_Albedo = { 0.0f, 1.0f, 0.0f };
-         greenMat.m_Roughness = 0.1f;
-         greenMat.m_Metallic = 1.0f;
-         greenMat.m_EmissionPower = 0.0f;
-         m_Materials.push_back(greenMat);
+         Material brownMat;
+         brownMat.m_Albedo = { 0.5f, 0.25f, 0.0f };
+         brownMat.m_Roughness = 0.1f;
+         brownMat.m_Metallic = 1.0f;
+         brownMat.m_EmissionPower = 0.0f;
+         m_Materials.push_back(brownMat);
       }
 
       {
@@ -113,46 +115,7 @@ public:
 
       ImGui::End();
 
-      ImGui::Begin("Scene");
-      //if (ImGui::TreeNode("Spheres"))
-      //{
-      //   for (size_t i = 0; i < m_Scene.m_Spheres.size(); i++)
-      //   {
-      //      ImGui::PushID(i);
-      //
-      //      Sphere& sphere = m_Scene.m_Spheres[i];
-      //      ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.1f);
-      //      ImGui::DragFloat("Radius", &(sphere.Radius), 0.1f);
-      //      ImGui::DragInt("Material", &sphere.MaterialIndex, 1.0f, 0, (int)m_Scene.m_Materials.size() - 1);
-      //
-      //      ImGui::Separator();
-      //      ImGui::PopID();
-      //   }
-      //   ImGui::TreePop();
-      //}
-      //
-      //if (ImGui::TreeNode("Materials"))
-      //{
-      //   for (size_t i = 0; i < m_Scene.m_Materials.size(); i++)
-      //   {
-      //      ImGui::PushID(i);
-      //
-      //      Material& material = m_Scene.m_Materials[i];
-      //      ImGui::ColorEdit3("Albedo", glm::value_ptr(material.Albedo), 0.1f);
-      //      ImGui::DragFloat("Roughness", &(material.Roughness), 0.05, 0.0f, 1.0f);
-      //      ImGui::DragFloat("Metallic", &(material.Metallic), 0.05, 0.0f, 1.0f);
-      //
-      //      ImGui::ColorEdit3("Emission Color", glm::value_ptr(material.EmissionColor));
-      //      ImGui::DragFloat("Emission Power", &(material.EmissionPower), 0.05, 0.0f, FLT_MAX);
-      //
-      //      ImGui::Separator();
-      //      ImGui::PopID();
-      //   }
-      //
-      //   ImGui::TreePop();
-      //}
-
-      ImGui::End();
+      m_SceneHierarchyPanel.RenderSceneHierarchy();
 
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
       ImGui::Begin("Viewport");
@@ -195,6 +158,7 @@ private:
    Renderer m_Renderer;
    Camera m_Camera;
    Scene m_Scene;
+   SceneHierarchyPanel m_SceneHierarchyPanel;
 
    // Should be in some sort of assetmanager class
    std::vector<Material> m_Materials;
